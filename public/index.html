@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dataset Viewer & Analytics Dashboard</title>
+    <style>
+      :root {
+        --primary: #2563eb;
+        --primary-hover: #1d4ed8;
+        --bg: #f8fafc;
+        --card-bg: #ffffff;
+        --text: #0f172a;
+        --text-muted: #64748b;
+        --border: #e2e8f0;
+        --success: #16a34a;
+        --error: #dc2626;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      }
+      body {
+        background-color: var(--bg);
+        color: var(--text);
+        padding: 2rem;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      header {
+        margin-bottom: 2rem;
+      }
+      header h1 {
+        font-size: 1.875rem;
+        font-weight: 700;
+      }
+      header p {
+        color: var(--text-muted);
+        font-size: 0.95rem;
+        margin-top: 0.25rem;
+      }
+
+      .card {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      }
+      .card h2 {
+        font-size: 1.25rem;
+        margin-bottom: 1rem;
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 0.5rem;
+      }
+
+      /* Upload Form */
+      .upload-zone {
+        border: 2px dashed var(--border);
+        border-radius: 6px;
+        padding: 2rem;
+        text-align: center;
+        background: #fafafa;
+        cursor: pointer;
+        transition: border 0.2s;
+      }
+      .upload-zone:hover {
+        border-color: var(--primary);
+      }
+      .upload-zone input {
+        display: none;
+      }
+      .btn {
+        background: var(--primary);
+        color: white;
+        border: none;
+        padding: 0.6rem 1.2rem;
+        border-radius: 6px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+      .btn:hover {
+        background: var(--primary-hover);
+      }
+      .btn:disabled {
+        background: #94a3b8;
+        cursor: not-allowed;
+      }
+
+      .status-msg {
+        margin-top: 1rem;
+        font-size: 0.9rem;
+        font-weight: 500;
+      }
+      .status-msg.success {
+        color: var(--success);
+      }
+      .status-msg.error {
+        color: var(--error);
+      }
+
+      /* Directory Table */
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: left;
+        font-size: 0.9rem;
+      }
+      th,
+      td {
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid var(--border);
+      }
+      th {
+        background-color: #f1f5f9;
+        font-weight: 600;
+        color: var(--text-muted);
+      }
+      tr:hover {
+        background-color: #f8fafc;
+      }
+
+      /* Analytics Detail View Modal */
+      .modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+      }
+      .modal.active {
+        display: flex;
+      }
+      .modal-content {
+        background: white;
+        border-radius: 8px;
+        width: 90%;
+        max-width: 800px;
+        max-height: 85vh;
+        overflow-y: auto;
+        padding: 1.5rem;
+        position: relative;
+      }
+      .close-btn {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: var(--text-muted);
+      }
+
+      .badge {
+        display: inline-block;
+        background: #e0e7ff;
+        color: #3730a3;
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        margin: 0.2rem;
+      }
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+      }
+      .stat-card {
+        background: #f8fafc;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 1rem;
+      }
+      .stat-card h4 {
+        font-size: 0.95rem;
+        color: var(--primary);
+        margin-bottom: 0.5rem;
+        word-break: break-all;
+      }
+      .stat-item {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin-bottom: 0.25rem;
+      }
+      .stat-item span {
+        font-weight: 600;
+        color: var(--text);
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Dataset Viewer & Analytics</h1>
+      <p>
+        Upload CSV datasets to inspect metadata, dynamic headers, and computed
+        summary statistics.
+      </p>
+    </header>
+
+    <!-- Component 1: File Upload -->
+    <section class="card">
+      <h2>Upload New Dataset</h2>
+      <div
+        class="upload-zone"
+        onclick="document.getElementById('csvFileInput').click()"
+      >
+        <p id="filePrompt">
+          Click here or drag & drop a <strong>.csv</strong> file to upload
+        </p>
+        <input
+          type="file"
+          id="csvFileInput"
+          accept=".csv"
+          onchange="handleFileSelect(event)"
+        />
+      </div>
+      <div style="margin-top: 1rem; text-align: right">
+        <button id="uploadBtn" class="btn" onclick="uploadDataset()" disabled>
+          Upload & Process
+        </button>
+      </div>
+      <div id="uploadStatus" class="status-msg"></div>
+    </section>
+
+    <!-- Component 2: Dataset Directory Table -->
+    <section class="card">
+      <h2>Uploaded Datasets</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>File Name</th>
+            <th>Size</th>
+            <th>Rows</th>
+            <th>Columns</th>
+            <th>Uploaded At</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="datasetsTableBody">
+          <tr>
+            <td colspan="7" style="text-align: center">Loading datasets...</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Component 3: Analytics Detail Modal -->
+    <div id="analyticsModal" class="modal">
+      <div class="modal-content">
+        <button class="close-btn" onclick="closeModal()">&times;</button>
+        <h2 id="modalTitle">Dataset Analytics</h2>
+        <div
+          id="modalMeta"
+          style="
+            margin-bottom: 1rem;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+          "
+        ></div>
+
+        <h3>Headers</h3>
+        <div id="modalHeaders" style="margin-bottom: 1.5rem"></div>
+
+        <h3>Summary Statistics</h3>
+        <div id="modalStats" class="stats-grid"></div>
+      </div>
+    </div>
+
+    <script>
+      let selectedFile = null;
+
+      // Load directory on page boot
+      document.addEventListener("DOMContentLoaded", fetchDatasets);
+
+      function handleFileSelect(event) {
+        selectedFile = event.target.files[0];
+        if (selectedFile) {
+          document.getElementById("filePrompt").innerHTML =
+            `Selected: <strong>${selectedFile.name}</strong> (${formatBytes(selectedFile.size)})`;
+          document.getElementById("uploadBtn").disabled = false;
+        }
+      }
+
+      async function uploadDataset() {
+        if (!selectedFile) return;
+
+        const statusEl = document.getElementById("uploadStatus");
+        const uploadBtn = document.getElementById("uploadBtn");
+
+        statusEl.className = "status-msg";
+        statusEl.innerText = "Uploading and processing CSV...";
+        uploadBtn.disabled = true;
+
+        const formData = new FormData();
+        formData.append("file", selectedFile);
+
+        try {
+          const response = await fetch("/api/datasets/upload", {
+            method: "POST",
+            body: formData,
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) throw new Error(data.error || "Upload failed");
+
+          statusEl.className = "status-msg success";
+          statusEl.innerText = "✅ " + data.message;
+
+          // Reset file input and refresh dataset table
+          selectedFile = null;
+          document.getElementById("filePrompt").innerText =
+            "Click here or drag & drop a .csv file to upload";
+          document.getElementById("csvFileInput").value = "";
+
+          fetchDatasets();
+        } catch (err) {
+          statusEl.className = "status-msg error";
+          statusEl.innerText = "❌ " + err.message;
+        } finally {
+          uploadBtn.disabled = true;
+        }
+      }
+
+      async function fetchDatasets() {
+        const tbody = document.getElementById("datasetsTableBody");
+        try {
+          const response = await fetch("/api/datasets");
+          const datasets = await response.json();
+
+          if (datasets.length === 0) {
+            tbody.innerHTML =
+              '<tr><td colspan="7" style="text-align:center;">No datasets uploaded yet.</td></tr>';
+            return;
+          }
+
+          tbody.innerHTML = datasets
+            .map(
+              (d) => `
+          <tr>
+            <td>${d.id}</td>
+            <td><strong>${escapeHtml(d.original_name)}</strong></td>
+            <td>${formatBytes(d.file_size_bytes)}</td>
+            <td>${d.row_count}</td>
+            <td>${d.column_count}</td>
+            <td>${new Date(d.created_at).toLocaleString()}</td>
+            <td>
+              <button class="btn" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;" onclick="viewAnalytics(${d.id})">View Analytics</button>
+            </td>
+          </tr>
+        `,
+            )
+            .join("");
+        } catch (err) {
+          tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: var(--error);">Failed to load datasets: ${err.message}</td></tr>`;
+        }
+      }
+
+      async function viewAnalytics(id) {
+        try {
+          const response = await fetch(`/api/datasets/${id}`);
+          const dataset = await response.json();
+
+          if (!response.ok)
+            throw new Error(dataset.error || "Failed to fetch details");
+
+          document.getElementById("modalTitle").innerText =
+            dataset.original_name;
+          document.getElementById("modalMeta").innerText =
+            `Rows: ${dataset.row_count} | Columns: ${dataset.column_count} | Path: ${dataset.storage_path}`;
+
+          // Parse JSON fields safely if returned as strings
+          const headers =
+            typeof dataset.headers === "string"
+              ? JSON.parse(dataset.headers)
+              : dataset.headers;
+          const stats =
+            typeof dataset.summary_stats === "string"
+              ? JSON.parse(dataset.summary_stats)
+              : dataset.summary_stats;
+
+          // Render headers as badges
+          document.getElementById("modalHeaders").innerHTML = headers
+            .map((h) => `<span class="badge">${escapeHtml(h)}</span>`)
+            .join("");
+
+          // Render summary statistics cards
+          const statsContainer = document.getElementById("modalStats");
+          statsContainer.innerHTML = Object.entries(stats)
+            .map(([col, colStats]) => {
+              if (colStats.type === "string/categorical") {
+                return `
+              <div class="stat-card">
+                <h4>${escapeHtml(col)}</h4>
+                <div class="stat-item">Type: <span>Categorical / Text</span></div>
+                <div class="stat-item">Entries: <span>${colStats.totalEntries}</span></div>
+              </div>
+            `;
+              } else {
+                return `
+              <div class="stat-card">
+                <h4>${escapeHtml(col)}</h4>
+                <div class="stat-item">Average: <span>${colStats.avg}</span></div>
+                <div class="stat-item">Min: <span>${colStats.min}</span></div>
+                <div class="stat-item">Max: <span>${colStats.max}</span></div>
+                <div class="stat-item">Numeric Entries: <span>${colStats.totalEntries}</span></div>
+              </div>
+            `;
+              }
+            })
+            .join("");
+
+          document.getElementById("analyticsModal").classList.add("active");
+        } catch (err) {
+          alert("Error loading analytics: " + err.message);
+        }
+      }
+
+      function closeModal() {
+        document.getElementById("analyticsModal").classList.remove("active");
+      }
+
+      function formatBytes(bytes) {
+        if (bytes === 0) return "0 Bytes";
+        const k = 1024;
+        const sizes = ["Bytes", "KB", "MB", "GB"];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+      }
+
+      function escapeHtml(str) {
+        return str
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+      }
+    </script>
+  </body>
+</html>
