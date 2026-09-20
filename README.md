@@ -51,24 +51,21 @@ AWS_S3_BUCKET_NAME=your-s3-bucket-name
 ```bash
 git clone [https://github.com/your-username/dataset-viewer.git](https://github.com/your-username/dataset-viewer.git)
 cd dataset-viewer
-
 ```
 
 2. Install dependencies:
 
 ```bash
 npm install
-
 ```
 
 3. Start the server:
 
 ```bash
 npm start
-
 ```
 
-## 🌐 Production Deployment (AWS EC2)
+## Production Deployment (AWS EC2)
 
 1. SSH into your EC2 instance and clone the repository.
 2. Configure `.env` with production RDS and S3 credentials.
@@ -78,6 +75,8 @@ npm start
 pm2 start server.js --name "dataset-viewer"
 pm2 save
 
+pm2 startup
+# run the command returned by the terminal
 ```
 
 4. Configure Nginx as a reverse proxy pointing port `80` to `http://127.0.0.1:5000`.
